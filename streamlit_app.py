@@ -4,24 +4,15 @@ from google import genai
 from google.genai import types
 
 
-# Initialize the Google GenAI Client
-def initialize_genai_client():
+# Directly use the reference code for calling the AI model
+def generate(input_text):
     client = genai.Client(
         vertexai=True,
-        project="",  # Leave blank as per your reference code
-        location="",  # Leave blank as per your reference code
+        project="",
+        location="",
     )
-    return client
 
-
-# Generate compliance report using the Gemini model
-def generate_compliance_analysis(client, regulation_name, uploaded_pdf_content):
     model = "gemini-2.5-flash-preview-04-17"
-    input_text = f"""
-    Perform a compliance analysis based on the following regulation:
-    Regulation Name: {regulation_name}
-    PDF Content: {uploaded_pdf_content}
-    """
     contents = [
         types.Content(
             role="user",
@@ -30,7 +21,6 @@ def generate_compliance_analysis(client, regulation_name, uploaded_pdf_content):
             ],
         ),
     ]
-
     generate_content_config = types.GenerateContentConfig(
         response_mime_type="text/plain",
     )
@@ -87,13 +77,17 @@ def main():
         pdf_content = uploaded_file.read()
         encoded_pdf = base64.b64encode(pdf_content).decode("utf-8")
 
-        # Initialize Google GenAI client
-        client = initialize_genai_client()
+        # Input text for the AI model
+        input_text = f"""
+        Perform a compliance analysis based on the following regulation:
+        Regulation Name: {regulation_name}
+        PDF Content: {encoded_pdf}
+        """
 
-        # Generate compliance analysis report
+        # Call the AI model using the reference code
         st.info("Performing compliance analysis... This may take a few moments.")
         try:
-            report = generate_compliance_analysis(client, regulation_name, encoded_pdf)
+            report = generate(input_text)
             st.success("Compliance Analysis Complete!")
             st.text_area("Compliance Audit Report", report, height=300)
         except Exception as e:
