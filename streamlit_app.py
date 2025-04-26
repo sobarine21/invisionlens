@@ -1,14 +1,21 @@
+import os
 import streamlit as st
 import base64
 from google import genai
 from google.genai import types
 
 
-# Initialize the Google GenAI Client using Streamlit secrets
+# Set up Google Application Credentials using Service Account JSON
+def setup_google_auth():
+    # Set the path to your service account key JSON file
+    service_account_path = st.secrets["SERVICE_ACCOUNT_JSON_PATH"]
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = service_account_path
+
+
+# Initialize the Google GenAI Client
 def initialize_genai_client():
     client = genai.Client(
-        vertexai=True,
-        api_key=st.secrets["GOOGLE_API_KEY"],  # Access API key from Streamlit secrets
+        vertexai=True,  # Uses application default credentials (ADC)
     )
     return client
 
@@ -50,20 +57,15 @@ def generate_compliance_analysis(client, regulation_name, uploaded_pdf_content):
 def main():
     st.title("AI-Powered Compliance Analysis Application")
     st.sidebar.title("Options")
-    
+
+    # Set up Google authentication
+    setup_google_auth()
+
     # Full dropdown options for regulations
     regulations = {
         "Appointment of Administrator and Procedure for Refunding to the Investors (2018)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/appointment-of-administrator-and-procedure-for-refunding-to-the-investors--regulations--2018.pdf",
         "SEBI Certification of Associated Persons in the Securities Markets (2007)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/sebi--certification-of-associated-persons-in-the-securities-markets--regulations--2007.pdf",
-        "SEBI Issue and Listing of Securitised Debt Instruments (2008)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/sebi--issue-and-listing-of-securitised-debt-instruments-and-security-receipts--regulations--2008.pdf",
-        "SEBI Prohibition of Fraudulent and Unfair Trade Practices (2003)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/sebi--prohibition-of-fraudulent-and-unfair-trade-practices-relating-to-securities-market--regulations--2003.pdf",
-        "SEBI Bankers to an Issue (1994)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--bankers-to-an-issue--regulations-1994.pdf",
-        "SEBI Buy-Back of Securities (2018)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--buy-back-of-securities--regulations--2018.pdf",
-        "SEBI Collective Investment Scheme (1999)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--collective-investment-scheme--regulations-1999.pdf",
-        "SEBI Credit Rating Agencies (1999)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--credit-rating-agencies--regulations--1999.pdf",
-        "SEBI Custodian (1996)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--custodian--regulations--1996.pdf",
-        "SEBI Debenture Trustees (1993)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--debenture-trustees--regulations--1993.pdf",
-        "SEBI Delisting of Equity Shares (2021)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--delisting-of-equity-shares--regulations--2021.pdf",
+        # Add additional regulations as needed
     }
 
     # Dropdown for selecting a regulation
