@@ -64,16 +64,9 @@ def main():
         "SEBI Custodian (1996)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--custodian--regulations--1996.pdf",
         "SEBI Debenture Trustees (1993)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--debenture-trustees--regulations--1993.pdf",
         "SEBI Delisting of Equity Shares (2021)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--delisting-of-equity-shares--regulations--2021.pdf",
-        "SEBI Depositories and Participants (2018)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--depositories-and-participants--regulations--2018.pdf",
-        "SEBI Employees Service (2001)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--employees--service--regulations--2001.pdf",
-        "SEBI Foreign Portfolio Investors (2019)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--foreign-portfolio-investors--regulation--2019.pdf",
-        "SEBI Index Providers (2024)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--index-providers--regulations--2024.pdf",
-        "SEBI Real Estate Investment Trusts (2014)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--real-estate-investment-trusts--regulations--2014.pdf",
-        "SEBI Vault Managers (2021)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--vault-managers--regulations-2021.pdf",
-        "Securities Contracts Regulation - Stock Exchanges and Clearing Corporations (2018)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-contracts--regulation---stock-exchanges-and-clearing-corporations--regulations--2018.pdf",
-        # Add additional regulations as needed
     }
 
+    # Dropdown for selecting a regulation
     regulation_name = st.sidebar.selectbox(
         "Select a Regulation",
         options=list(regulations.keys()),
