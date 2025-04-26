@@ -1,88 +1,109 @@
 import streamlit as st
-import PyPDF2
-import requests
-import tempfile
-from fpdf import FPDF
+import base64
 from google import genai
 from google.genai import types
 
-# 🔑 Set your API Key
-GOOGLE_API_KEY = "YOUR_GOOGLE_API_KEY"  # Replace with your actual key
 
-# All SEBI regulations (shortened for readability here)
-regulations = {
-    "Buy-Back of Securities (2018)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--buy-back-of-securities--regulations--2018.pdf",
-    "Prohibition of Insider Trading (2015)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--prohibition-of-insider-trading--regulations-2015.pdf",
-    "Mutual Funds (1996)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--mutual-funds--regulations-1996.pdf",
-    # ... include all entries here as in your original list
-}
+# Initialize the Google GenAI Client using Streamlit secrets
+def initialize_genai_client():
+    client = genai.Client(
+        vertexai=True,
+        api_key=st.secrets["GOOGLE_API_KEY"],  # Access API key from Streamlit secrets
+    )
+    return client
 
-# Utility: Extract text from PDF file
-def extract_text_from_pdf(file):
-    reader = PyPDF2.PdfReader(file)
-    return "".join([page.extract_text() or "" for page in reader.pages])
 
-# Utility: Get regulation PDF and extract text
-def get_regulation_text(url):
-    response = requests.get(url)
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        tmp.write(response.content)
-        return extract_text_from_pdf(tmp.name)
-
-# Gemini AI: Generate compliance audit text
-def generate_compliance_analysis(reg_text, doc_text):
-    client = genai.Client(api_key=GOOGLE_API_KEY)
+# Generate compliance report using the Gemini model
+def generate_compliance_analysis(client, regulation_name, uploaded_pdf_content):
     model = "gemini-2.5-flash-preview-04-17"
-    prompt = f"""
-You are a compliance auditor.
-
-Compare the uploaded document with the SEBI regulation.
-
-Identify:
-- Any violations
-- Any missing disclosures or clauses
-- Gaps or inconsistencies
-- Refer to specific regulation clauses if applicable
-
---- SEBI Regulation ---
-{reg_text}
-
---- Uploaded Document ---
-{doc_text}
-"""
+    input_text = f"""
+    Perform a compliance analysis based on the following regulation:
+    Regulation Name: {regulation_name}
+    PDF Content: {uploaded_pdf_content}
+    """
     contents = [
-        types.Content(role="user", parts=[types.Part.from_text(prompt)])
+        types.Content(
+            role="user",
+            parts=[
+                types.Part.from_text(text=input_text),
+            ],
+        ),
     ]
-    config = types.GenerateContentConfig(response_mime_type="text/plain")
-    output = ""
-    for chunk in client.models.generate_content_stream(model=model, contents=contents, config=config):
-        output += chunk.text
-    return output
 
-# Utility: Generate downloadable PDF from result
-def generate_pdf(text):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=11)
-    pdf.multi_cell(0, 10, text)
-    return pdf.output(dest="S").encode("latin1")
+    generate_content_config = types.GenerateContentConfig(
+        response_mime_type="text/plain",
+    )
 
-# Streamlit App UI
-st.set_page_config(page_title="SEBI Compliance Auditor", layout="wide")
-st.title("📜 SEBI Compliance Auditor (AI-Powered)")
+    # Stream the generated response
+    compliance_report = ""
+    for chunk in client.models.generate_content_stream(
+        model=model,
+        contents=contents,
+        config=generate_content_config,
+    ):
+        compliance_report += chunk.text
 
-reg_name = st.selectbox("Choose a SEBI Regulation", list(regulations.keys()))
-uploaded_pdf = st.file_uploader("Upload your PDF document for review", type="pdf")
+    return compliance_report
 
-if reg_name and uploaded_pdf:
-    with st.spinner("Analyzing for compliance using Gemini..."):
-        regulation_text = get_regulation_text(regulations[reg_name])
-        document_text = extract_text_from_pdf(uploaded_pdf)
-        result = generate_compliance_analysis(regulation_text, document_text)
 
-        st.subheader("📋 AI Audit Result")
-        st.text_area("Compliance Analysis", result, height=400)
+# Streamlit App
+def main():
+    st.title("AI-Powered Compliance Analysis Application")
+    st.sidebar.title("Options")
+    
+    # Full dropdown options for regulations
+    regulations = {
+        "Appointment of Administrator and Procedure for Refunding to the Investors (2018)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/appointment-of-administrator-and-procedure-for-refunding-to-the-investors--regulations--2018.pdf",
+        "SEBI Certification of Associated Persons in the Securities Markets (2007)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/sebi--certification-of-associated-persons-in-the-securities-markets--regulations--2007.pdf",
+        "SEBI Issue and Listing of Securitised Debt Instruments (2008)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/sebi--issue-and-listing-of-securitised-debt-instruments-and-security-receipts--regulations--2008.pdf",
+        "SEBI Prohibition of Fraudulent and Unfair Trade Practices (2003)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/sebi--prohibition-of-fraudulent-and-unfair-trade-practices-relating-to-securities-market--regulations--2003.pdf",
+        "SEBI Bankers to an Issue (1994)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--bankers-to-an-issue--regulations-1994.pdf",
+        "SEBI Buy-Back of Securities (2018)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--buy-back-of-securities--regulations--2018.pdf",
+        "SEBI Collective Investment Scheme (1999)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--collective-investment-scheme--regulations-1999.pdf",
+        "SEBI Credit Rating Agencies (1999)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--credit-rating-agencies--regulations--1999.pdf",
+        "SEBI Custodian (1996)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--custodian--regulations--1996.pdf",
+        "SEBI Debenture Trustees (1993)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--debenture-trustees--regulations--1993.pdf",
+        "SEBI Delisting of Equity Shares (2021)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--delisting-of-equity-shares--regulations--2021.pdf",
+        "SEBI Depositories and Participants (2018)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--depositories-and-participants--regulations--2018.pdf",
+        "SEBI Employees Service (2001)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--employees--service--regulations--2001.pdf",
+        "SEBI Foreign Portfolio Investors (2019)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--foreign-portfolio-investors--regulation--2019.pdf",
+        "SEBI Index Providers (2024)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--index-providers--regulations--2024.pdf",
+        "SEBI Real Estate Investment Trusts (2014)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--real-estate-investment-trusts--regulations--2014.pdf",
+        "SEBI Vault Managers (2021)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-and-exchange-board-of-india--vault-managers--regulations-2021.pdf",
+        "Securities Contracts Regulation - Stock Exchanges and Clearing Corporations (2018)": "https://eorclvgyabomabeqrcqc.supabase.co/storage/v1/object/public/sebiregulatorydb/regdb/securities-contracts--regulation---stock-exchanges-and-clearing-corporations--regulations--2018.pdf",
+        # Add additional regulations as needed
+    }
 
-        # Generate and provide downloadable PDF
-        pdf_bytes = generate_pdf(result)
-        st.download_button("📥 Download Report", data=pdf_bytes, file_name="SEBI_Compliance_Report.pdf", mime="application/pdf")
+    regulation_name = st.sidebar.selectbox(
+        "Select a Regulation",
+        options=list(regulations.keys()),
+    )
+
+    # File upload
+    uploaded_file = st.file_uploader("Upload a PDF for Analysis", type=["pdf"])
+
+    # Button to perform analysis
+    if st.button("Perform Compliance Analysis"):
+        if not uploaded_file:
+            st.error("Please upload a PDF file for analysis.")
+            return
+
+        # Extract content from the uploaded PDF
+        pdf_content = uploaded_file.read()
+        encoded_pdf = base64.b64encode(pdf_content).decode("utf-8")
+
+        # Initialize Google GenAI client
+        client = initialize_genai_client()
+
+        # Generate compliance analysis report
+        st.info("Performing compliance analysis... This may take a few moments.")
+        try:
+            report = generate_compliance_analysis(client, regulation_name, encoded_pdf)
+            st.success("Compliance Analysis Complete!")
+            st.text_area("Compliance Audit Report", report, height=300)
+        except Exception as e:
+            st.error(f"An error occurred while performing the analysis: {str(e)}")
+
+
+if __name__ == "__main__":
+    main()
